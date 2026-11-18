@@ -1,0 +1,6 @@
+package com.gros.modules.auth.entity;
+
+public enum Role {
+    ADMINISTRATEUR, DIRECTEUR, RESPONSABLE_ACHATS, COMMERCIAL,
+    MAGASINIER, LIVREUR, SECRETAIRE_CAISSIER, COMPTABLE
+}
