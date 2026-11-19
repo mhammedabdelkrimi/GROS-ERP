@@ -1,1 +1,37 @@
 package com.gros.modules.livraison.controller;
+
+import com.gros.modules.livraison.dto.BonLivraisonResponse;
+import com.gros.modules.livraison.dto.RefusLivraisonRequest;
+import com.gros.modules.livraison.service.LivraisonService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController @RequestMapping("/api/livraisons") @RequiredArgsConstructor
+public class LivraisonController {
+    private final LivraisonService service;
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('LIVREUR','MAGASINIER','DIRECTEUR','ADMINISTRATEUR')")
+    public BonLivraisonResponse consulter(@PathVariable Long id) { return service.consulter(id); }
+
+    @PutMapping("/{id}/signer")
+    @PreAuthorize("hasRole('LIVREUR')")
+    public BonLivraisonResponse signer(@PathVariable Long id) { return service.signer(id); }
+
+    @PutMapping("/{id}/confirmer")
+    @PreAuthorize("hasRole('LIVREUR')")
+    public BonLivraisonResponse confirmer(@PathVariable Long id) { return service.confirmer(id); }
+
+    @PutMapping("/{id}/refuser")
+    @PreAuthorize("hasRole('LIVREUR')")
+    public BonLivraisonResponse refuser(@PathVariable Long id, @Valid @RequestBody RefusLivraisonRequest r) {
+        return service.refuser(id, r.motif());
+    }
+}
