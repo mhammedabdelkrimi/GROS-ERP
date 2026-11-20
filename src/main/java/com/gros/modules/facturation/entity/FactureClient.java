@@ -32,6 +32,8 @@ public class FactureClient {
     private BigDecimal montantTva = BigDecimal.ZERO;
     private BigDecimal montantTtc = BigDecimal.ZERO;
     private BigDecimal montantPaye = BigDecimal.ZERO;
+    private BigDecimal montantAvoir = BigDecimal.ZERO;
+    private BigDecimal montantRembourse = BigDecimal.ZERO;
     @Enumerated(EnumType.STRING) private StatutFacture statut = StatutFacture.EMISE;
 
     @OneToMany(cascade = CascadeType.ALL)
@@ -43,7 +45,18 @@ public class FactureClient {
         montantTva = lignes.stream().map(LigneFacture::montantTVA).reduce(BigDecimal.ZERO, BigDecimal::add);
         montantTtc = montantHt.add(montantTva);
     }
-    public BigDecimal soldeRestant() { return montantTtc.subtract(montantPaye); }
+
+    /** Montant réellement facturé : TTC moins les avoirs. */
+    public BigDecimal montantNet() { return montantTtc.subtract(montantAvoir); }
+
+    /** Ce que le client doit encore sur cette facture (jamais négatif). */
+    public BigDecimal soldeRestant() { return montantNet().subtract(montantPaye).max(BigDecimal.ZERO); }
+
+    /** Payé en trop sur cette facture et pas encore remboursé. */
+    public BigDecimal creditGenere() {
+        return montantPaye.subtract(montantNet()).subtract(montantRembourse).max(BigDecimal.ZERO);
+    }
+
     public boolean estSoldee() { return soldeRestant().signum() == 0; }
     public boolean estEnRetard() { return soldeRestant().signum() > 0 && dateEcheance.isBefore(LocalDate.now()); }
 
@@ -52,5 +65,20 @@ public class FactureClient {
             throw new BusinessException("Montant invalide : reste à payer " + soldeRestant());
         montantPaye = montantPaye.add(m);
         statut = estSoldee() ? StatutFacture.PAYEE : StatutFacture.PARTIELLEMENT_PAYEE;
+    }
+
+    /** L'avoir corrige le montant facturé : il peut dépasser le reste à payer, mais jamais le net facturé. */
+    public void appliquerAvoir(BigDecimal m) {
+        if (m.signum() <= 0 || m.compareTo(montantNet()) > 0)
+            throw new BusinessException("Montant invalide : avoir maximum " + montantNet());
+        montantAvoir = montantAvoir.add(m);
+        if (estSoldee()) statut = StatutFacture.PAYEE;
+    }
+
+    /** Rembourse une partie du crédit généré par cette facture. */
+    public void rembourser(BigDecimal m) {
+        if (m.signum() <= 0 || m.compareTo(creditGenere()) > 0)
+            throw new BusinessException("Remboursement impossible : crédit disponible sur cette facture " + creditGenere());
+        montantRembourse = montantRembourse.add(m);
     }
 }
