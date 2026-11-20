@@ -5,7 +5,8 @@ import com.gros.modules.facturation.entity.StatutFacture;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,4 +18,5 @@ public interface FactureClientRepository extends JpaRepository<FactureClient, Lo
 
     @Query("select f from FactureClient f where f.statut in :statuts and f.dateEcheance < :date")
     List<FactureClient> echues(@Param("statuts") List<StatutFacture> statuts, @Param("date") LocalDate date);
+    Page<FactureClient> findByStatut(StatutFacture statut, Pageable pageable);
 }

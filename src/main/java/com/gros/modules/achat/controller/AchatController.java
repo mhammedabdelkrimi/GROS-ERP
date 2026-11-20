@@ -1,5 +1,10 @@
 package com.gros.modules.achat.controller;
 
+import com.gros.modules.achat.dto.AchatResume;
+import com.gros.modules.achat.entity.StatutCommandeAchat;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.gros.modules.achat.dto.CommandeAchatRequest;
 import com.gros.modules.achat.dto.CommandeAchatResponse;
 import com.gros.modules.achat.dto.ReceptionRequest;
@@ -37,5 +42,10 @@ public class AchatController {
     @PreAuthorize("hasRole('MAGASINIER')")
     public CommandeAchatResponse receptionner(@PathVariable Long id, @Valid @RequestBody ReceptionRequest r) {
         return service.receptionner(id, r);
+    }
+    @GetMapping
+    @PreAuthorize("hasAnyRole('RESPONSABLE_ACHATS','DIRECTEUR','MAGASINIER','ADMINISTRATEUR')")
+    public Page<AchatResume> lister(@RequestParam(required = false) StatutCommandeAchat statut, Pageable pageable) {
+        return service.lister(statut, pageable);
     }
 }

@@ -1,5 +1,9 @@
 package com.gros.modules.livraison.controller;
 
+import com.gros.modules.livraison.entity.StatutBon;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 import com.gros.modules.livraison.dto.BonLivraisonResponse;
 import com.gros.modules.livraison.dto.RefusLivraisonRequest;
 import com.gros.modules.livraison.service.LivraisonService;
@@ -33,5 +37,10 @@ public class LivraisonController {
     @PreAuthorize("hasRole('LIVREUR')")
     public BonLivraisonResponse refuser(@PathVariable Long id, @Valid @RequestBody RefusLivraisonRequest r) {
         return service.refuser(id, r.motif());
+    }
+    @GetMapping
+    @PreAuthorize("hasAnyRole('LIVREUR','MAGASINIER','DIRECTEUR','ADMINISTRATEUR')")
+    public Page<BonLivraisonResponse> lister(@RequestParam(required = false) StatutBon statut, Pageable pageable) {
+        return service.lister(statut, pageable);
     }
 }

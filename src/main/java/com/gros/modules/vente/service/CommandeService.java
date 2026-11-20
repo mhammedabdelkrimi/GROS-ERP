@@ -1,5 +1,7 @@
 package com.gros.modules.vente.service;
-
+import com.gros.modules.vente.dto.CommandeResume;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.gros.common.SecurityUtils;
 import com.gros.common.document.ServiceDocument;
 import com.gros.common.exception.BusinessException;
@@ -107,5 +109,13 @@ public class CommandeService extends ServiceDocument<CommandeClient> {
         c.changerStatut(StatutCommande.ANNULEE);
         audit.tracer("ANNULATION", "COMMANDE_CLIENT", id);
         return CommandeResponse.de(c);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CommandeResume> lister(StatutCommande statut, Pageable pageable) {
+        Page<CommandeClient> page = (statut == null)
+                ? commandes.findAll(pageable)
+                : commandes.findByStatut(statut, pageable);
+        return page.map(CommandeResume::de);
     }
 }

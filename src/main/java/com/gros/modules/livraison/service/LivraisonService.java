@@ -1,5 +1,8 @@
 package com.gros.modules.livraison.service;
 
+import com.gros.modules.livraison.entity.StatutBon;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.gros.common.audit.AuditService;
 import com.gros.common.exception.NotFoundException;
 import com.gros.modules.livraison.dto.BonLivraisonResponse;
@@ -56,5 +59,11 @@ public class LivraisonService {
         c.changerStatut(StatutCommande.ANNULEE);    // aucun stock n'est sorti : rien à annuler
         audit.tracer("REFUS", "BON_LIVRAISON", bonId);
         return BonLivraisonResponse.de(bon);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BonLivraisonResponse> lister(StatutBon statut, Pageable pageable) {
+        var page = (statut == null) ? bons.findAll(pageable) : bons.findByStatut(statut, pageable);
+        return page.map(BonLivraisonResponse::de);
     }
 }

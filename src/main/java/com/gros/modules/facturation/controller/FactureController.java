@@ -1,5 +1,9 @@
 package com.gros.modules.facturation.controller;
 
+import com.gros.modules.facturation.entity.StatutFacture;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import com.gros.modules.facturation.dto.FactureResponse;
 import com.gros.modules.facturation.service.FactureService;
@@ -20,4 +24,9 @@ public class FactureController {
     @GetMapping("/impayees")
     @PreAuthorize("hasAnyRole('COMPTABLE','SECRETAIRE_CAISSIER','DIRECTEUR','ADMINISTRATEUR')")
     public List<FactureResponse> impayees() { return service.impayees(); }
+    @GetMapping
+    @PreAuthorize("hasAnyRole('COMPTABLE','SECRETAIRE_CAISSIER','COMMERCIAL','DIRECTEUR','ADMINISTRATEUR')")
+    public Page<FactureResponse> lister(@RequestParam(required = false) StatutFacture statut, Pageable pageable) {
+        return service.lister(statut, pageable);
+    }
 }

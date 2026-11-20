@@ -3,28 +3,31 @@ services:
     image: gvenzl/oracle-free:23-slim
     container_name: gros-oracle
     ports:
-      - "1522:1521"      # PC:conteneur. 1522 évite le conflit avec ton Oracle Windows
+      - "1522:1521"
     environment:
-      ORACLE_PASSWORD: admin123
-      APP_USER: gros
-      APP_USER_PASSWORD: gros123
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?Crée le fichier .env (copie .env.example)}
+      APP_USER: ${DB_USER:-gros}
+      APP_USER_PASSWORD: ${DB_PASSWORD:?Crée le fichier .env (copie .env.example)}
     volumes:
       - oracle-data:/opt/oracle/oradata
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
-      interval: 10s
-      retries: 30
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 180s
 
   api:
     build: .
     container_name: gros-api
     depends_on:
       oracle:
-        condition: service_healthy     # attend qu'Oracle soit prêt
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
-      SPRING_DATASOURCE_USERNAME: gros
-      SPRING_DATASOURCE_PASSWORD: gros123
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-gros}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?Crée le fichier .env (copie .env.example)}
+      APP_JWT_SECRET: ${JWT_SECRET:?Crée le fichier .env (copie .env.example)}
     ports:
       - "8080:8080"
 

@@ -1,5 +1,8 @@
 package com.gros.modules.achat.service;
 
+import com.gros.modules.achat.dto.AchatResume;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import com.gros.common.SecurityUtils;
 import com.gros.common.document.ServiceDocument;
 import com.gros.common.exception.BusinessException;
@@ -93,5 +96,12 @@ public class AchatService extends ServiceDocument<CommandeFournisseur> {
         c.setStatut(c.estCompletementRecue() ? StatutCommandeAchat.RECUE : StatutCommandeAchat.PARTIELLEMENT_RECUE);
         audit.tracer("RECEPTION", "COMMANDE_FOURNISSEUR", commandeId);
         return CommandeAchatResponse.de(c);
+    }
+    @Transactional(readOnly = true)
+    public Page<AchatResume> lister(StatutCommandeAchat statut, Pageable pageable) {
+        Page<CommandeFournisseur> page = (statut == null)
+                ? commandes.findAll(pageable)
+                : commandes.findByStatut(statut, pageable);
+        return page.map(AchatResume::de);
     }
 }

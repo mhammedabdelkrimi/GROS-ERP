@@ -1,9 +1,8 @@
-
 spring:
   datasource:
     url: jdbc:oracle:thin:@//localhost:1522/FREEPDB1
-    username: gros
-    password: ${DB_PASSWORD:gros123}
+    username: ${DB_USER:gros}
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
@@ -19,5 +18,5 @@ server:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:gros-projet-scolaire-cle-secrete-tres-longue-au-moins-32-caracteres}
+    secret: ${JWT_SECRET}
     expiration-minutes: 30

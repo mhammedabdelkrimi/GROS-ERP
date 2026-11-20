@@ -8,6 +8,8 @@ import com.gros.modules.facturation.repository.FactureClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service @RequiredArgsConstructor
 public class FactureService {
@@ -22,5 +24,10 @@ public class FactureService {
     public List<FactureResponse> impayees() {
         return factures.echues(List.of(StatutFacture.EMISE, StatutFacture.PARTIELLEMENT_PAYEE), LocalDate.now())
                 .stream().map(FactureResponse::de).toList();
+    }
+    @Transactional(readOnly = true)
+    public Page<FactureResponse> lister(StatutFacture statut, Pageable pageable) {
+        var page = (statut == null) ? factures.findAll(pageable) : factures.findByStatut(statut, pageable);
+        return page.map(FactureResponse::de);
     }
 }
