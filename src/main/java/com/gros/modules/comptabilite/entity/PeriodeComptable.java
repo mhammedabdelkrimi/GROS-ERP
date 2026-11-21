@@ -13,7 +13,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/** Une ligne = une période clôturée, avec la TVA figée au moment de la clôture. */
+/** Une ligne = une période clôturée, avec la TVA figée au moment de la clôture et son règlement éventuel. */
 @Entity @Table(name = "periode_comptable") @Getter @Setter @NoArgsConstructor
 public class PeriodeComptable {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) private Long id;
@@ -22,8 +22,10 @@ public class PeriodeComptable {
     private BigDecimal tvaFacturee;
     private BigDecimal tvaRecuperable;
     private BigDecimal tvaDue;
+    private BigDecimal tvaReglee = BigDecimal.ZERO;
     private Long cloturePar = SecurityUtils.idCourant();
     private LocalDateTime dateCloture = LocalDateTime.now();
+    private LocalDateTime dateReglement;
 
     public PeriodeComptable(int annee, int mois, BigDecimal tvaFacturee, BigDecimal tvaRecuperable, BigDecimal tvaDue) {
         this.annee = annee;

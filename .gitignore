@@ -2,5 +2,5 @@ target/
 .idea/
 *.log
 *.iml
-HELP.md
 .env
+backups/

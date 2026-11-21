@@ -1,7 +1,9 @@
 package com.gros.modules.client.controller;
 
+import com.gros.modules.client.dto.BlocageAutomatiqueResponse;
 import com.gros.modules.client.dto.ClientRequest;
 import com.gros.modules.client.dto.ClientResponse;
+import com.gros.modules.client.service.BlocageAutomatiqueService;
 import com.gros.modules.client.service.ClientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +23,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController @RequestMapping("/api/clients") @RequiredArgsConstructor
 public class ClientController {
     private final ClientService service;
+    private final BlocageAutomatiqueService blocageAutomatique;
 
     @GetMapping
     public Page<ClientResponse> lister(@RequestParam(required = false) String q, Pageable pageable) {
@@ -49,4 +54,12 @@ public class ClientController {
 
     @PatchMapping("/{id}/debloquer") @PreAuthorize("hasRole('DIRECTEUR')")
     public void debloquer(@PathVariable Long id) { service.debloquer(id); }
+
+    /** Même traitement que la tâche planifiée de 2 h du matin, déclenchable à la demande. */
+    @PostMapping("/blocage-automatique")
+    @PreAuthorize("hasAnyRole('DIRECTEUR','ADMINISTRATEUR')")
+    public BlocageAutomatiqueResponse bloquerClientsEnRetard() {
+        List<Long> ids = blocageAutomatique.executer();
+        return new BlocageAutomatiqueResponse(ids.size(), ids);
+    }
 }

@@ -20,4 +20,12 @@ public interface LigneEcritureRepository extends JpaRepository<LigneEcriture, Lo
             + "where e.dateEcriture between :du and :au "
             + "group by l.compteNumero order by l.compteNumero")
     List<TotauxCompte> totauxParCompte(@Param("du") LocalDate du, @Param("au") LocalDate au);
+
+    /** Totaux sans un type de pièce : sert au calcul de la TVA, qui ne doit pas compter sa propre liquidation. */
+    @Query("select new com.gros.modules.comptabilite.dto.TotauxCompte(l.compteNumero, sum(l.debit), sum(l.credit)) "
+            + "from LigneEcriture l join EcritureComptable e on l.ecritureId = e.id "
+            + "where e.dateEcriture between :du and :au and e.pieceType <> :piece "
+            + "group by l.compteNumero order by l.compteNumero")
+    List<TotauxCompte> totauxParCompteHorsPiece(@Param("du") LocalDate du, @Param("au") LocalDate au,
+                                                @Param("piece") String pieceType);
 }

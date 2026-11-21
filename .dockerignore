@@ -2,3 +2,5 @@ target/
 .idea/
 .git/
 *.iml
+.env
+backups/

@@ -4,4 +4,5 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record PeriodeResponse(int annee, int mois, BigDecimal tvaFacturee, BigDecimal tvaRecuperable,
-                              BigDecimal tvaDue, LocalDateTime dateCloture) {}
+                              BigDecimal tvaDue, BigDecimal tvaReglee,
+                              LocalDateTime dateCloture, LocalDateTime dateReglement) {}

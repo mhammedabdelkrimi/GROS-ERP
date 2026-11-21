@@ -14,10 +14,14 @@ public interface ClientMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "actif", ignore = true)
     @Mapping(target = "bloque", ignore = true)
+    @Mapping(target = "dateDeblocage", ignore = true)
+    @Mapping(target = "remiseHabituelle", source = "remiseHabituelle", defaultValue = "0")
     Client toEntity(ClientRequest r);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "actif", ignore = true)
     @Mapping(target = "bloque", ignore = true)
+    @Mapping(target = "dateDeblocage", ignore = true)
+    @Mapping(target = "remiseHabituelle", source = "remiseHabituelle", defaultValue = "0")
     void maj(ClientRequest r, @MappingTarget Client c);
 }

@@ -18,6 +18,7 @@ import com.gros.modules.comptabilite.repository.LigneEcritureRepository;
 import com.gros.modules.comptabilite.repository.PeriodeComptableRepository;
 import com.gros.modules.facturation.entity.Avoir;
 import com.gros.modules.facturation.entity.FactureClient;
+import com.gros.modules.paiement.entity.ModePaiement;
 import com.gros.modules.paiement.entity.Paiement;
 import com.gros.modules.paiement.entity.Remboursement;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 public class ComptabiliteService {
     private static final LocalDate DEBUT = LocalDate.of(1900, 1, 1);
     private static final LocalDate FIN = LocalDate.of(2999, 12, 31);
+    public static final String PIECE_LIQUIDATION_TVA = "LIQUIDATION_TVA";
 
     private final EcritureComptableRepository ecritures;
     private final LigneEcritureRepository lignes;
@@ -73,6 +75,51 @@ public class ComptabiliteService {
                 SchemaComptable.remboursement(r.getModePaiement(), r.getMontant()));
     }
 
+    @Transactional
+    public void comptabiliserFactureFournisseur(String numero, Long factureId,
+                                                BigDecimal ht, BigDecimal tva, BigDecimal ttc) {
+        poster("Facture fournisseur " + numero, "FACTURE_FOURNISSEUR", factureId, null,
+                SchemaComptable.factureFournisseur(ht, tva, ttc));
+    }
+
+    @Transactional
+    public void comptabiliserPaiementFournisseur(Long paiementId, Long factureId,
+                                                 ModePaiement mode, BigDecimal montant) {
+        poster("Paiement fournisseur (facture " + factureId + ", " + mode + ")",
+                "PAIEMENT_FOURNISSEUR", paiementId, null,
+                SchemaComptable.paiementFournisseur(mode, montant));
+    }
+
+    @Transactional
+    public void comptabiliserAvoirFournisseur(String numero, Long avoirId,
+                                              BigDecimal ht, BigDecimal tva, BigDecimal ttc) {
+        poster("Avoir fournisseur " + numero, "AVOIR_FOURNISSEUR", avoirId, null,
+                SchemaComptable.avoirFournisseur(ht, tva, ttc));
+    }
+
+    @Transactional
+    public void comptabiliserRemboursementFournisseur(Long factureId, ModePaiement mode, BigDecimal montant) {
+        poster("Remboursement fournisseur (facture " + factureId + ", " + mode + ")",
+                "REMBOURSEMENT_FOURNISSEUR", factureId, null,
+                SchemaComptable.remboursementFournisseur(mode, montant));
+    }
+
+    /** Écriture de liquidation de la TVA, datée de la fin du mois (ou d'aujourd'hui si le mois n'est pas fini). */
+    @Transactional
+    public void liquiderTva(YearMonth ym, BigDecimal facturee, BigDecimal recuperable) {
+        if (facturee.signum() == 0 && recuperable.signum() == 0) return;     // rien à liquider
+        LocalDate fin = ym.atEndOfMonth();
+        LocalDate date = fin.isAfter(LocalDate.now()) ? LocalDate.now() : fin;
+        poster("Liquidation de la TVA " + ym, PIECE_LIQUIDATION_TVA, pieceId(ym), null, date,
+                SchemaComptable.liquidationTva(facturee, recuperable));
+    }
+
+    @Transactional
+    public void reglerTva(YearMonth ym, BigDecimal montant, ModePaiement mode) {
+        poster("Règlement de la TVA " + ym + " (" + mode + ")", "REGLEMENT_TVA", pieceId(ym), null,
+                SchemaComptable.reglementTva(mode, montant));
+    }
+
     // ---------- Extourne ----------
 
     @Transactional
@@ -81,6 +128,8 @@ public class ComptabiliteService {
                 .orElseThrow(() -> new NotFoundException("Écriture introuvable : " + id));
         if (origine.getExtourneDe() != null)
             throw new BusinessException("Une écriture d'extourne ne peut pas être extournée");
+        if (PIECE_LIQUIDATION_TVA.equals(origine.getPieceType()))
+            throw new BusinessException("La liquidation de TVA d'une période clôturée ne peut pas être extournée");
         if (ecritures.existsByExtourneDe(id))
             throw new BusinessException("Écriture déjà extournée");
         List<LigneEcriture> inverse = lignes.findByEcritureId(id).stream().map(LigneEcriture::inverse).toList();
@@ -140,10 +189,17 @@ public class ComptabiliteService {
 
     private EcritureComptable poster(String libelle, String pieceType, Long pieceId, Long extourneDe,
                                      List<LigneEcriture> modele) {
-        verifierPeriodeOuverte(LocalDate.now());          // avant la numérotation : aucun numéro consommé
+        return poster(libelle, pieceType, pieceId, extourneDe, LocalDate.now(), modele);
+    }
+
+    private EcritureComptable poster(String libelle, String pieceType, Long pieceId, Long extourneDe,
+                                     LocalDate date, List<LigneEcriture> modele) {
+        verifierPeriodeOuverte(date);                     // avant la numérotation : aucun numéro consommé
         SchemaComptable.verifierEquilibre(modele);
-        EcritureComptable e = ecritures.save(new EcritureComptable(
-                numerotation.prochainNumero("EC"), libelle, pieceType, pieceId, extourneDe));
+        EcritureComptable nouvelle = new EcritureComptable(
+                numerotation.prochainNumero("EC"), libelle, pieceType, pieceId, extourneDe);
+        nouvelle.setDateEcriture(date);
+        EcritureComptable e = ecritures.save(nouvelle);
         for (LigneEcriture l : modele) l.setEcritureId(e.getId());
         lignes.saveAll(modele);
         audit.tracer("CREATION", "ECRITURE_COMPTABLE", e.getId());
@@ -160,6 +216,8 @@ public class ComptabiliteService {
         if (du != null && au != null && du.isAfter(au))
             throw new BusinessException("La date de début doit précéder la date de fin");
     }
+
+    private static Long pieceId(YearMonth ym) { return ym.getYear() * 100L + ym.getMonthValue(); }
 
     private Map<String, String> intitules() {
         return comptes.findAll().stream()

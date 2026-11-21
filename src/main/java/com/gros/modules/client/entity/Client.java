@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity @Table(name = "client")
 @Getter @Setter @NoArgsConstructor
@@ -20,12 +21,23 @@ public class Client {
     private String telephone;
     private BigDecimal limiteCredit = BigDecimal.ZERO;
     private int delaiPaiementJours = 30;
+    private BigDecimal remiseHabituelle = BigDecimal.ZERO;
     private boolean bloque;
+    private LocalDate dateDeblocage;          // dernier déblocage manuel par la direction
     private boolean actif = true;
 
     public void desactiver() { actif = false; }
     public void bloquer() { bloque = true; }
-    public void debloquer() { bloque = false; }
+
+    public void debloquer() {
+        bloque = false;
+        dateDeblocage = LocalDate.now();
+    }
+
+    /** Après un déblocage manuel, le blocage automatique laisse un délai de grâce pour régulariser. */
+    public boolean estEnGrace(int jours, LocalDate aujourdhui) {
+        return dateDeblocage != null && dateDeblocage.plusDays(jours).isAfter(aujourdhui);
+    }
 
     /** Le solde actuel vient de SoldeClientService (partie 11), jamais d'une colonne. */
     public boolean peutAcheterACredit(BigDecimal soldeActuel, BigDecimal nouveauMontant) {
