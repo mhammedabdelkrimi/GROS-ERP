@@ -20,8 +20,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component @RequiredArgsConstructor
@@ -38,11 +40,15 @@ public class FacturationListener {
         BonLivraison bon = bons.findById(e.bonLivraisonId()).orElseThrow();
         CommandeClient c = commandes.findById(bon.getCommandeId()).orElseThrow();
         Client client = clients.findById(c.getClientId()).orElseThrow();
-        Map<Long, String> noms = produits
+        Map<Long, Produit> parId = produits
                 .findAllById(c.getLignes().stream().map(LigneCommandeClient::getProduitId).toList())
-                .stream().collect(Collectors.toMap(Produit::getId, Produit::getDesignation));
+                .stream().collect(Collectors.toMap(Produit::getId, Function.identity()));
+        Map<Long, String> noms = parId.values().stream()
+                .collect(Collectors.toMap(Produit::getId, Produit::getDesignation));
+        Map<Long, BigDecimal> couts = parId.values().stream()
+                .collect(Collectors.toMap(Produit::getId, Produit::getPrixAchat));
         FactureClient f = new FactureBuilder()
-                .pourBonLivraison(bon, c, noms)
+                .pourBonLivraison(bon, c, noms, couts)
                 .avecNumero(numerotation.prochainNumero("FAC"))      // sans trou : annulé avec la transaction
                 .avecEcheance(LocalDate.now().plusDays(client.getDelaiPaiementJours()))
                 .construire();

@@ -1,7 +1,5 @@
 package com.gros.modules.vente.service;
-import com.gros.modules.vente.dto.CommandeResume;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+
 import com.gros.common.SecurityUtils;
 import com.gros.common.document.ServiceDocument;
 import com.gros.common.exception.BusinessException;
@@ -19,16 +17,21 @@ import com.gros.modules.produit.entity.Produit;
 import com.gros.modules.produit.service.ProduitService;
 import com.gros.modules.stock.service.StockService;
 import com.gros.modules.vente.dto.CommandeResponse;
+import com.gros.modules.vente.dto.CommandeResume;
 import com.gros.modules.vente.dto.CommandeVenteRequest;
 import com.gros.modules.vente.entity.CommandeClient;
 import com.gros.modules.vente.entity.LigneCommandeClient;
+import com.gros.modules.vente.entity.LigneDevis;
 import com.gros.modules.vente.entity.StatutCommande;
 import com.gros.modules.vente.repository.CommandeClientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service @RequiredArgsConstructor
 public class CommandeService extends ServiceDocument<CommandeClient> {
@@ -60,6 +63,33 @@ public class CommandeService extends ServiceDocument<CommandeClient> {
         commandes.save(c);
         audit.tracer("CREATION", "COMMANDE_CLIENT", c.getId());
         return CommandeResponse.de(c);
+    }
+
+    /**
+     * Création depuis un devis : le prix unitaire et la TVA du devis sont conservés.
+     * La remise par quantité est appliquée en plus (elle ne peut que baisser le prix). Renvoie l'id de la commande.
+     */
+    @Transactional
+    public Long creerDepuisDevis(Long clientId, List<LigneDevis> lignesDevis) {
+        Client client = clients.findById(clientId).filter(Client::isActif)
+                .orElseThrow(() -> new NotFoundException("Client introuvable"));
+        CommandeClient c = new CommandeClient();
+        c.setNumero(numerotation.prochainNumero("CMD"));
+        c.setClientId(client.getId());
+        c.setCreePar(SecurityUtils.idCourant());
+        for (LigneDevis l : lignesDevis) {
+            Produit p = produitService.trouver(l.getProduitId());
+            if (!p.isActif())
+                throw new BusinessException("Produit désactivé : " + p.getDesignation());
+            LigneCommandeClient lg = new LigneCommandeClient(p.getId(), l.getQuantite(),
+                    l.getPrixUnitaire(), l.getTauxTva());           // prix et TVA du devis
+            lg.setRemisePourcent(remises.meilleureRemise(lg, client));
+            c.getLignes().add(lg);
+        }
+        c.calculerTotaux();
+        commandes.save(c);
+        audit.tracer("CREATION", "COMMANDE_CLIENT", c.getId());
+        return c.getId();
     }
 
     @Transactional(readOnly = true)

@@ -21,11 +21,18 @@ public class LigneFacture {
     private BigDecimal prixUnitaire;
     private BigDecimal remisePourcent;
     private BigDecimal tauxTva;
+    private BigDecimal coutUnitaire = BigDecimal.ZERO;   // prix d'achat figé au moment de la facture
 
     public LigneFacture(Long produitId, String designation, int quantite, BigDecimal prixUnitaire,
                         BigDecimal remisePourcent, BigDecimal tauxTva) {
         this.produitId = produitId; this.designation = designation; this.quantite = quantite;
         this.prixUnitaire = prixUnitaire; this.remisePourcent = remisePourcent; this.tauxTva = tauxTva;
+    }
+
+    public LigneFacture(Long produitId, String designation, int quantite, BigDecimal prixUnitaire,
+                        BigDecimal remisePourcent, BigDecimal tauxTva, BigDecimal coutUnitaire) {
+        this(produitId, designation, quantite, prixUnitaire, remisePourcent, tauxTva);
+        this.coutUnitaire = coutUnitaire;
     }
 
     public BigDecimal montantHT() {
