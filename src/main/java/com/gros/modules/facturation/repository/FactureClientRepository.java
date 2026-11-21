@@ -27,6 +27,8 @@ public interface FactureClientRepository extends JpaRepository<FactureClient, Lo
 
     List<FactureClient> findByClientIdAndStatutNotOrderByIdAsc(Long clientId, StatutFacture statut);
 
+    Optional<FactureClient> findByBonLivraisonId(Long bonLivraisonId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select f from FactureClient f where f.id = :id")
     Optional<FactureClient> findByIdAvecVerrou(@Param("id") Long id);

@@ -3,6 +3,7 @@ package com.gros.modules.paiement.service;
 import com.gros.common.audit.AuditService;
 import com.gros.common.exception.NotFoundException;
 import com.gros.modules.client.repository.ClientRepository;
+import com.gros.modules.comptabilite.service.ComptabiliteService;
 import com.gros.modules.facturation.entity.FactureClient;
 import com.gros.modules.facturation.entity.StatutFacture;
 import com.gros.modules.facturation.repository.FactureClientRepository;
@@ -25,6 +26,7 @@ public class RemboursementService {
     private final FactureClientRepository factures;
     private final ClientRepository clients;
     private final SoldeClientService solde;
+    private final ComptabiliteService comptabilite;
     private final AuditService audit;
 
     @Transactional
@@ -34,6 +36,7 @@ public class RemboursementService {
         f.rembourser(r.montant());   // refuse si le montant dépasse le crédit de CETTE facture
         Remboursement rb = remboursements.save(
                 new Remboursement(f.getClientId(), f.getId(), r.montant(), r.modePaiement()));
+        comptabilite.comptabiliserRemboursement(rb);
         audit.tracer("REMBOURSEMENT", "REMBOURSEMENT", rb.getId());
         return RemboursementResponse.de(rb);
     }

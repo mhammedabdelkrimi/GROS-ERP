@@ -4,6 +4,7 @@ import com.gros.common.audit.AuditService;
 import com.gros.common.exception.BusinessException;
 import com.gros.common.exception.NotFoundException;
 import com.gros.common.numerotation.NumerotationService;
+import com.gros.modules.comptabilite.service.ComptabiliteService;
 import com.gros.modules.facturation.dto.AvoirRequest;
 import com.gros.modules.facturation.dto.AvoirResponse;
 import com.gros.modules.facturation.entity.Avoir;
@@ -22,6 +23,7 @@ public class AvoirService {
     private final AvoirRepository avoirs;
     private final FactureClientRepository factures;
     private final NumerotationService numerotation;
+    private final ComptabiliteService comptabilite;
     private final AuditService audit;
 
     @Transactional
@@ -30,8 +32,9 @@ public class AvoirService {
                 .orElseThrow(() -> new NotFoundException("Facture introuvable : " + r.factureId()));
         if (f.getStatut() == StatutFacture.ANNULEE)
             throw new BusinessException("Facture annulée : avoir impossible");
-        f.appliquerAvoir(r.montant());   // refuse si le montant dépasse le reste dû
+        f.appliquerAvoir(r.montant());   // refuse si le montant dépasse le net facturé
         Avoir a = avoirs.save(new Avoir(numerotation.prochainNumero("AV"), f.getId(), r.motif(), r.montant()));
+        comptabilite.comptabiliserAvoir(a, f);
         audit.tracer("CREATION", "AVOIR", a.getId());
         return AvoirResponse.de(a);
     }

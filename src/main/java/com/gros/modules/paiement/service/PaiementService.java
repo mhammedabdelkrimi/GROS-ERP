@@ -4,6 +4,7 @@ import com.gros.common.audit.AuditService;
 import com.gros.common.exception.BusinessException;
 import com.gros.common.exception.NotFoundException;
 import com.gros.modules.client.repository.ClientRepository;
+import com.gros.modules.comptabilite.service.ComptabiliteService;
 import com.gros.modules.facturation.entity.FactureClient;
 import com.gros.modules.facturation.entity.StatutFacture;
 import com.gros.modules.facturation.repository.FactureClientRepository;
@@ -27,6 +28,7 @@ public class PaiementService {
     private final FactureClientRepository factures;
     private final ClientRepository clients;
     private final SoldeClientService soldeClient;
+    private final ComptabiliteService comptabilite;
     private final AuditService audit;
 
     @Transactional
@@ -48,6 +50,7 @@ public class PaiementService {
             f.appliquerPaiement(a.montant());          // PARTIELLEMENT_PAYEE ou PAYEE
             affectations.save(new AffectationPaiement(p.getId(), f.getId(), a.montant()));
         }
+        comptabilite.comptabiliserPaiement(p);
         audit.tracer("PAIEMENT", "PAIEMENT", p.getId());
         affectations.flush();
         return PaiementResponse.de(p, soldeClient.calculerSolde(r.clientId()));

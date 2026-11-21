@@ -56,6 +56,26 @@ public class StockService {
         }
     }
 
+    /**
+     * Correction d'inventaire. ecart > 0 : un lot de régularisation est créé.
+     * ecart < 0 : on retire des lots (FIFO/FEFO). Dans les deux cas, un mouvement CORRECTION_INVENTAIRE est écrit.
+     */
+    @Transactional
+    public void corrigerInventaire(Long produitId, int ecart, String numeroLot, String docType, Long docId) {
+        if (ecart == 0) return;
+        if (ecart > 0) {
+            Lot lot = new Lot();
+            lot.setProduitId(produitId);
+            lot.setNumero(numeroLot);
+            lot.setQuantiteRestante(ecart);
+            lots.save(lot);
+            mouvements.save(new MouvementStock(produitId, lot.getId(), TypeMouvement.CORRECTION_INVENTAIRE,
+                    ecart, docType, docId));
+        } else {
+            enregistrerSortie(produitId, -ecart, TypeMouvement.CORRECTION_INVENTAIRE, docType, docId);
+        }
+    }
+
     @Transactional(readOnly = true)
     public long quantiteDisponible(Long produitId) {
         return mouvements.quantiteDisponible(produitId);
